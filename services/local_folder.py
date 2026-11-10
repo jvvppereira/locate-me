@@ -33,17 +33,17 @@ class LocalPhoto:
 
 class LocalFolderService:
     def __init__(self, root_path: str):
+        safe_root = (LOCAL_IMAGES_PATH or "").strip()
+        allowed_base = Path(safe_root if safe_root else os.getcwd()).expanduser().resolve()
+
         resolved_root = Path(root_path).expanduser().resolve()
 
-        safe_root = (LOCAL_IMAGES_PATH or "").strip()
-        if safe_root:
-            resolved_safe_root = Path(safe_root).expanduser().resolve()
-            try:
-                resolved_root.relative_to(resolved_safe_root)
-            except ValueError:
-                raise ValueError(
-                    f"Path '{resolved_root}' is outside allowed base folder '{resolved_safe_root}'"
-                )
+        try:
+            resolved_root.relative_to(allowed_base)
+        except ValueError:
+            raise ValueError(
+                f"Path '{resolved_root}' is outside allowed base folder '{allowed_base}'"
+            )
 
         self.root_path = resolved_root
 
