@@ -40,12 +40,11 @@ class LocalFolderService:
             raise ValueError("Path is required")
 
         # Parse and validate user input, then enforce containment in allowed_base.
-        # Support both absolute and relative paths safely.
+        # Only relative paths are accepted; they are always resolved under allowed_base.
         input_path = Path(os.path.expanduser(root_path.strip()))
         if input_path.is_absolute():
-            resolved_root = input_path.resolve()
-        else:
-            resolved_root = (allowed_base / input_path).resolve()
+            raise ValueError("Absolute paths are not allowed")
+        resolved_root = (allowed_base / input_path).resolve()
 
         try:
             resolved_root.relative_to(allowed_base)
