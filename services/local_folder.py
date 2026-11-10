@@ -6,7 +6,7 @@ from typing import List, Optional
 from PIL import Image
 from unidecode import unidecode
 
-from config import VALID_IMAGE_EXTENSIONS, THUMBNAIL_SIZE
+from config import VALID_IMAGE_EXTENSIONS, THUMBNAIL_SIZE, LOCAL_IMAGES_PATH
 from services.cache import get_folder_cache
 
 
@@ -33,7 +33,19 @@ class LocalPhoto:
 
 class LocalFolderService:
     def __init__(self, root_path: str):
-        self.root_path = Path(root_path).expanduser().resolve()
+        resolved_root = Path(root_path).expanduser().resolve()
+
+        safe_root = (LOCAL_IMAGES_PATH or "").strip()
+        if safe_root:
+            resolved_safe_root = Path(safe_root).expanduser().resolve()
+            try:
+                resolved_root.relative_to(resolved_safe_root)
+            except ValueError:
+                raise ValueError(
+                    f"Path '{resolved_root}' is outside allowed base folder '{resolved_safe_root}'"
+                )
+
+        self.root_path = resolved_root
 
     def scan(self, max_photos: Optional[int] = None) -> List[LocalPhoto]:
         folder_cache = get_folder_cache()
