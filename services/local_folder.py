@@ -42,14 +42,19 @@ class LocalFolderService:
         if not root_path or not root_path.strip():
             raise ValueError("Path is required")
 
-        input_path = Path(os.path.expanduser(root_path.strip()))
+        raw_input = root_path.strip()
+        input_path = Path(raw_input)
         if input_path.is_absolute():
             raise ValueError("Absolute paths are not allowed")
 
+        normalized_rel = Path(os.path.normpath(raw_input))
+        if normalized_rel.is_absolute() or ".." in normalized_rel.parts:
+            raise ValueError("Path traversal is not allowed")
+
         try:
-            resolved_root = (allowed_base / input_path).resolve(strict=True)
+            resolved_root = allowed_base.joinpath(normalized_rel).resolve(strict=True)
         except FileNotFoundError:
-            raise ValueError(f"Path not found: '{(allowed_base / input_path)}'")
+            raise ValueError(f"Path not found: '{allowed_base.joinpath(normalized_rel)}'")
 
         try:
             resolved_root.relative_to(allowed_base)
@@ -60,7 +65,7 @@ class LocalFolderService:
 
         if not resolved_root.is_dir():
             raise ValueError(f"Path is not a directory: '{resolved_root}'")
-        if not os.access(resolved_root, os.R_OK):
+        if not os.access(str(resolved_root), os.R_OK):
             raise ValueError(f"No read permission for: '{resolved_root}'")
 
         return resolved_root
