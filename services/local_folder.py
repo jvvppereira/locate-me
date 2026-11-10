@@ -39,15 +39,13 @@ class LocalFolderService:
         if not root_path or not root_path.strip():
             raise ValueError("Path is required")
 
-        # Parse and validate user input as a relative path segment.
-        # Reject absolute paths and traversal attempts up-front.
-        input_path = Path(root_path.strip())
+        # Parse and validate user input, then enforce containment in allowed_base.
+        # Support both absolute and relative paths safely.
+        input_path = Path(os.path.expanduser(root_path.strip()))
         if input_path.is_absolute():
-            raise ValueError("Absolute paths are not allowed")
-        if ".." in input_path.parts:
-            raise ValueError("Parent directory traversal is not allowed")
-
-        resolved_root = (allowed_base / input_path).resolve()
+            resolved_root = input_path.resolve()
+        else:
+            resolved_root = (allowed_base / input_path).resolve()
 
         try:
             resolved_root.relative_to(allowed_base)

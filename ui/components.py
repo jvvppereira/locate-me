@@ -77,6 +77,10 @@ def render_folder_input() -> Optional[str]:
         if not os.access(path, os.R_OK):
             st.error(f"Sem permissão de leitura: {path}")
             return None
+
+        # Return a relative path so the service can safely resolve it under allowed base.
+        rel_path = os.path.relpath(path, safe_base)
+        return rel_path if rel_path else "."
     return path
 
 
