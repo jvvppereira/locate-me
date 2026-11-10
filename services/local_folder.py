@@ -34,12 +34,15 @@ class LocalPhoto:
 class LocalFolderService:
     def __init__(self, root_path: str):
         safe_root = (LOCAL_IMAGES_PATH or "").strip()
-        allowed_base = Path(os.path.realpath(os.path.expanduser(safe_root if safe_root else os.getcwd())))
+        allowed_base = Path(os.path.expanduser(safe_root if safe_root else os.getcwd())).resolve()
 
         if not root_path or not root_path.strip():
             raise ValueError("Path is required")
 
-        resolved_root = Path(os.path.realpath(os.path.expanduser(root_path.strip())))
+        # Treat user input as a path inside the allowed base.
+        # This prevents absolute-path overrides and traversal outside base.
+        user_path = root_path.strip().lstrip("/\\")
+        resolved_root = (allowed_base / user_path).resolve()
 
         try:
             resolved_root.relative_to(allowed_base)
