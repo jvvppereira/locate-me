@@ -51,14 +51,16 @@ class LocalFolderService:
         if normalized_rel.is_absolute() or ".." in normalized_rel.parts:
             raise ValueError("Path traversal is not allowed")
 
-        try:
-            resolved_root = allowed_base.joinpath(normalized_rel).resolve(strict=True)
-        except FileNotFoundError:
-            raise ValueError(f"Path not found: '{allowed_base.joinpath(normalized_rel)}'")
+        candidate_root = allowed_base / normalized_rel
 
         try:
-            resolved_root.relative_to(allowed_base)
-        except ValueError:
+            resolved_root = candidate_root.resolve(strict=True)
+        except FileNotFoundError:
+            raise ValueError(f"Path not found: '{candidate_root}'")
+
+        allowed_base_str = str(allowed_base)
+        resolved_root_str = str(resolved_root)
+        if os.path.commonpath([allowed_base_str, resolved_root_str]) != allowed_base_str:
             raise ValueError(
                 f"Path '{resolved_root}' is outside allowed base folder '{allowed_base}'"
             )
