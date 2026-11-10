@@ -33,18 +33,23 @@ class LocalPhoto:
 
 class LocalFolderService:
     def __init__(self, root_path: str):
+        self.root_path = self._resolve_and_validate_root_path(root_path)
+
+    def _resolve_and_validate_root_path(self, root_path: str) -> Path:
         safe_root = (LOCAL_IMAGES_PATH or "").strip()
-        allowed_base = Path(os.path.expanduser(safe_root if safe_root else os.getcwd())).resolve()
+        allowed_base = Path(os.path.expanduser(safe_root if safe_root else os.getcwd())).resolve(strict=True)
 
         if not root_path or not root_path.strip():
             raise ValueError("Path is required")
 
-        # Parse and validate user input, then enforce containment in allowed_base.
-        # Only relative paths are accepted; they are always resolved under allowed_base.
         input_path = Path(os.path.expanduser(root_path.strip()))
         if input_path.is_absolute():
             raise ValueError("Absolute paths are not allowed")
-        resolved_root = (allowed_base / input_path).resolve()
+
+        try:
+            resolved_root = (allowed_base / input_path).resolve(strict=True)
+        except FileNotFoundError:
+            raise ValueError(f"Path not found: '{(allowed_base / input_path)}'")
 
         try:
             resolved_root.relative_to(allowed_base)
@@ -53,14 +58,12 @@ class LocalFolderService:
                 f"Path '{resolved_root}' is outside allowed base folder '{allowed_base}'"
             )
 
-        if not resolved_root.exists():
-            raise ValueError(f"Path not found: '{resolved_root}'")
         if not resolved_root.is_dir():
             raise ValueError(f"Path is not a directory: '{resolved_root}'")
         if not os.access(resolved_root, os.R_OK):
             raise ValueError(f"No read permission for: '{resolved_root}'")
 
-        self.root_path = resolved_root
+        return resolved_root
 
     def scan(self, max_photos: Optional[int] = None) -> List[LocalPhoto]:
         folder_cache = get_folder_cache()
