@@ -34,9 +34,12 @@ class LocalPhoto:
 class LocalFolderService:
     def __init__(self, root_path: str):
         safe_root = (LOCAL_IMAGES_PATH or "").strip()
-        allowed_base = Path(safe_root if safe_root else os.getcwd()).expanduser().resolve()
+        allowed_base = Path(os.path.realpath(os.path.expanduser(safe_root if safe_root else os.getcwd())))
 
-        resolved_root = Path(root_path).expanduser().resolve()
+        if not root_path or not root_path.strip():
+            raise ValueError("Path is required")
+
+        resolved_root = Path(os.path.realpath(os.path.expanduser(root_path.strip())))
 
         try:
             resolved_root.relative_to(allowed_base)
@@ -44,6 +47,13 @@ class LocalFolderService:
             raise ValueError(
                 f"Path '{resolved_root}' is outside allowed base folder '{allowed_base}'"
             )
+
+        if not resolved_root.exists():
+            raise ValueError(f"Path not found: '{resolved_root}'")
+        if not resolved_root.is_dir():
+            raise ValueError(f"Path is not a directory: '{resolved_root}'")
+        if not os.access(resolved_root, os.R_OK):
+            raise ValueError(f"No read permission for: '{resolved_root}'")
 
         self.root_path = resolved_root
 
