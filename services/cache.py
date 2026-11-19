@@ -1,6 +1,7 @@
 import hashlib
+import io
+import json
 import os
-import pickle
 from pathlib import Path
 from typing import Any, Optional, List
 import numpy as np
@@ -23,14 +24,16 @@ class EmbeddingCache:
         if data is None:
             return None
         try:
-            return pickle.loads(data)
+            buffer = io.BytesIO(data)
+            return list(np.load(buffer, allow_pickle=False).values())
         except Exception:
             return None
 
     def set(self, photo_id: str, embeddings: List[np.ndarray], size_label: str = "original") -> None:
         key = self._make_key(photo_id, size_label)
-        data = pickle.dumps(embeddings)
-        self.cache.set(key, data, expire=self.ttl_seconds)
+        buffer = io.BytesIO()
+        np.savez(buffer, *embeddings)
+        self.cache.set(key, buffer.getvalue(), expire=self.ttl_seconds)
 
     def has(self, photo_id: str, size_label: str = "original") -> bool:
         key = self._make_key(photo_id, size_label)
@@ -61,10 +64,10 @@ class FolderCache:
                 f for f in os.listdir(root_path)
                 if Path(f).suffix.lower() in {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff', '.tif'}
             ]
-            path_hash = hashlib.md5(root_path.encode()).hexdigest()[:12]
+            path_hash = hashlib.md5(root_path.encode(), usedforsecurity=False).hexdigest()[:12]
             return f"folder_{path_hash}_{len(files)}_{int(stat.st_mtime)}"
         except Exception:
-            path_hash = hashlib.md5(root_path.encode()).hexdigest()[:12]
+            path_hash = hashlib.md5(root_path.encode(), usedforsecurity=False).hexdigest()[:12]
             return f"folder_{path_hash}_0_0"
 
     def get(self, root_path: str) -> Optional[List[dict]]:
@@ -73,13 +76,13 @@ class FolderCache:
         if data is None:
             return None
         try:
-            return pickle.loads(data)
+            return json.loads(data)
         except Exception:
             return None
 
     def set(self, root_path: str, photos_data: List[dict]) -> None:
         key = self._make_key(root_path)
-        data = pickle.dumps(photos_data)
+        data = json.dumps(photos_data)
         self.cache.set(key, data, expire=self.ttl_seconds)
 
     def has(self, root_path: str) -> bool:
