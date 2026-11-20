@@ -60,6 +60,14 @@ def render_folder_input() -> Optional[str]:
 
     path = path.strip() if path else None
     if path:
+        safe_base = os.path.realpath(LOCAL_IMAGES_PATH or os.getcwd())
+        user_path = path.lstrip("/\\")
+        path = os.path.realpath(os.path.join(safe_base, user_path))
+
+        if os.path.commonpath([safe_base, path]) != safe_base:
+            st.error("Caminho fora da pasta permitida.")
+            return None
+
         if not os.path.exists(path):
             st.error(f"Caminho não encontrado: {path}")
             return None
