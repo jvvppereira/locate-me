@@ -57,7 +57,7 @@ class LocalFolderService:
                     rel_path = entry.name
                     stem = Path(entry.name).stem
                     display_id = stem[:11] if len(stem) >= 11 else stem
-                    photo_id = hashlib.md5(rel_path.encode()).hexdigest()[:12]
+                    photo_id = hashlib.md5(rel_path.encode(), usedforsecurity=False).hexdigest()[:12]
                     title = self._normalize_title(Path(entry.name).stem)
 
                     photo = LocalPhoto(
